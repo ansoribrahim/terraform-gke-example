@@ -1,17 +1,17 @@
+# Google provider configuration
 provider "google" {
   project = "ruyuk-432100"
-  region  = "asia-southeast2"  # Jakarta region
+  region  = "asia-southeast2"
 }
 
+# Create GKE Cluster
 resource "google_container_cluster" "primary" {
   name     = "ruyuk-cluster"
-  location = "asia-southeast2-a"  # Jakarta zone
-
+  location = "asia-southeast2-a"
   initial_node_count = 1
 
   node_config {
     machine_type = "e2-medium"
-
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
     ]
@@ -24,16 +24,16 @@ resource "google_container_cluster" "primary" {
   }
 }
 
+# Create Node Pool
 resource "google_container_node_pool" "primary_nodes" {
   name     = "ruyuk-node-pool"
-  location = "asia-southeast2-a"  # Jakarta zone
+  location = "asia-southeast2-a"
   cluster  = google_container_cluster.primary.name
 
   node_count = 3
 
   node_config {
-    machine_type = "e2-medium"
-
+    machine_type = "e2-micro"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
     ]
@@ -45,6 +45,34 @@ resource "google_container_node_pool" "primary_nodes" {
   }
 }
 
+# Kubernetes provider configuration
+provider "kubernetes" {
+  host                   = "https://${google_container_cluster.primary.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
+}
+
+data "google_client_config" "default" {}
+
+# Kubernetes Pod Resource
+resource "kubernetes_pod" "notification" {
+  metadata {
+    name      = "notification-pod"
+    namespace = "default"
+  }
+
+  spec {
+    container {
+      name  = "notification-container"
+      image = "nginx:latest"  # Replace with your desired image
+      port {
+        container_port = 80
+      }
+    }
+  }
+}
+
+# Outputs
 output "kubeconfig" {
   value = google_container_cluster.primary.endpoint
 }
