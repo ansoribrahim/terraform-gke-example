@@ -17,10 +17,31 @@ resource "google_container_cluster" "primary" {
     ]
   }
 
+  # Enable network policy for admission webhooks
+  network_policy {
+    enabled  = true
+    provider = "CALICO"
+  }
+
   lifecycle {
     ignore_changes = [
       node_config[0].oauth_scopes,
     ]
+  }
+
+  # Addons for monitoring and logging
+  addons_config {
+    horizontal_pod_autoscaling {
+      disabled = false
+    }
+
+    http_load_balancing {
+      disabled = false
+    }
+
+    network_policy_config {
+      disabled = false
+    }
   }
 }
 
@@ -28,12 +49,12 @@ resource "google_container_cluster" "primary" {
 resource "google_container_node_pool" "primary_nodes" {
   name     = "ruyuk-node-pool"
   location = "asia-southeast2-a"
-  cluster  = google_container_cluster.primary.name
+  cluster  = google_container_cluster.primary.id
 
   node_count = 3
 
   node_config {
-    machine_type = "e2-micro"
+    machine_type = "e2-medium"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
     ]
@@ -64,7 +85,7 @@ resource "kubernetes_pod" "notification" {
   spec {
     container {
       name  = "notification-container"
-      image = "nginx:latest"  # Replace with your desired image
+      image = "nginx:latest"
       port {
         container_port = 80
       }
