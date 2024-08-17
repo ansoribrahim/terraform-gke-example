@@ -9,7 +9,7 @@ resource "aws_db_instance" "postgres" {
   engine_version        = "15"
   instance_class        = "db.t2.medium"
   username              = "app"
-  password              = "red1KruPassW0w"
+  password              = "red1KruPadfdfssW0w"
   allocated_storage     = 20
   backup_retention_period = 7
   multi_az              = false
